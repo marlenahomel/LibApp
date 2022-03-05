@@ -3,17 +3,33 @@ using System.Linq;
 using LibApp.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using AutoMapper.Internal;
+using Microsoft.AspNetCore.Identity;
 
 namespace LibApp.Models
 {
     public static class SeedData
     {
-        public static void Initialize(IServiceProvider serviceProvider)
+        public static async void Initialize(IServiceProvider serviceProvider)
         {
-            using (var context = new ApplicationDbContext(
-                serviceProvider.GetRequiredService<DbContextOptions<ApplicationDbContext>>()))
+            await using var context = serviceProvider.GetRequiredService<ApplicationDbContext>();
+            using var roleManager = serviceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+
+            if (!roleManager.Roles.Any())
             {
-                if (context.MembershipTypes.Any())
+                var roles = new[]
+                {
+                    Roles.Owner,
+                    Roles.StoreManager,
+                    Roles.User
+                };
+
+                foreach (var role in roles)
+                {
+                    await roleManager.CreateAsync(new IdentityRole(role));
+                }
+            }
+            if (context.MembershipTypes.Any())
                 {
                     Console.WriteLine("Database already seeded");
                     return;
@@ -48,8 +64,53 @@ namespace LibApp.Models
                         DurationInMonths = 12,
                         DiscountRate = 20
                     });
-                context.SaveChanges();
+
+                context.Rentals.AddRange(
+                new Rental
+                {
+                    Customer = new Customer
+                    {
+                        Birthdate = DateTime.Now.AddYears(-17),
+                        HasNewsletterSubscribed = true,
+                        MembershipTypeId = 1,
+                        Name = "Adam Nowak"
+                    },
+                    Book = new Book
+                    {
+                        AuthorName = "Maria Kowal",
+                        DateAdded = DateTime.Now.AddDays(-30),
+                        GenreId = 3,
+                        Name = "Gotuj z nami",
+                        NumberAvailable = 18,
+                        NumberInStock = 18,
+                        ReleaseDate = DateTime.Now.AddDays(-60)
+                    },
+                    DateRented = DateTime.Now.AddDays(-1)
+                },
+                new Rental
+                {
+                    Customer = new Customer
+                    {
+                        Birthdate = DateTime.Now.AddYears(-27),
+                        HasNewsletterSubscribed = false,
+                        MembershipTypeId = 1,
+                        Name = "Piotr Nowak"
+                    },
+                    Book = new Book
+                    {
+                        AuthorName = "Grzegorz Piotrowski",
+                        DateAdded = DateTime.Now.AddDays(-250),
+                        GenreId = 2,
+                        Name = "Bardzo fajna ksiazka",
+                        NumberAvailable = 10,
+                        NumberInStock = 10,
+                        ReleaseDate = DateTime.Now.AddDays(-300)
+                    },
+                    DateRented = DateTime.Now.AddDays(-21)
+                }
+                );
+
+                await context.SaveChangesAsync();
             }
         }
-    }
 }

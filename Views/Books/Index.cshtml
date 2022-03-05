@@ -1,3 +1,4 @@
+@using Microsoft.AspNetCore.Identity
 @model IEnumerable<LibApp.Models.Book>
 
 @{
@@ -22,6 +23,7 @@
     @foreach (var book in Model)
     {
         <tr>
+            @* @roleManager.Context.User.IsInRole() *@
             <td><a asp-action="Edit" asp-route-id="@book.Id">@Html.DisplayFor(modelItem => book.Name)</a></td>
             <td>@book.Genre.Name</td>
             <td><a asp-action="Details" asp-route-id="@book.Id">Details</a></td>
